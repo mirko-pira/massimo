@@ -139,7 +139,7 @@ async function writeOpenAPIClient (
     )
   }
   if (namedSchemas && Object.keys(schema.components?.schemas ?? {}).length === 0) {
-    logger.warn('--named-schemas has no effect: the spec has no components.schemas')
+    logger.warn('--named-schemas declares no named schemas: the spec has no components.schemas, so only the path map is added')
   }
   if (!typesOnly) {
     await writeFile(

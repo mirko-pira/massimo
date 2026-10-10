@@ -220,7 +220,7 @@ massimo <url> --name myclient --module cjs
 # Force TypeScript declaration file extensions (.d.mts/.d.cts)
 massimo <url> --name myclient --type-extension
 
-# Declare components.schemas as named types instead of inlining every $ref
+# Declare components.schemas as named types and a <Name>Paths map of each operation's types
 massimo <url> --name myclient --named-schemas
 ```
 
@@ -229,6 +229,8 @@ massimo <url> --name myclient --named-schemas
 With `--named-schemas`, every `components.schemas` entry is declared once as a named type: an `interface` for an object schema, `interface X extends A, B` for an `allOf` of named objects whose members declare disjoint properties, and a `type` alias otherwise. Response types print each `$ref` as that name, so recursive schemas stay typed instead of becoming `unknown`. Request types keep inlining, because there date formats widen to `string | Date`.
 
 A schema whose name is already taken by a generated type (e.g. `GetMoviesResponseOK`), by another schema, or by a TypeScript built-in is declared with a `Schema` suffix (`Schema2`, `Schema3`, ... if needed), with a comment on the declaration. Names are stable for a given spec but not across its revisions: a new operation or schema can take a name and move a schema to a suffixed one.
+
+The types file also declares `<Name>Paths` (e.g. `MoviesPaths`), keyed by path template and then HTTP method, whose entries name the request and responses types of each operation: `MoviesPaths['/movies/{id}']['get']['responses']`. For a path and method that are type parameters, use `MoviesPathRequest<P, M>` and `MoviesPathResponses<P, M>`, since `MoviesPaths[P][M]['request']` does not compile. The names come from the same code that names the client methods, so operations without an `operationId`, or whose `operationId` was renamed to stay unique, appear under the names the client uses. A schema named `<Name>Paths`, `<Name>PathRequest` or `<Name>PathResponses` is renamed like any other collision.
 
 ### Module Format Detection
 

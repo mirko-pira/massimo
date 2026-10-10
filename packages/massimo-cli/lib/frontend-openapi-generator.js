@@ -2,7 +2,7 @@ import camelcase from 'camelcase'
 import CodeBlockWriter from 'code-block-writer'
 import { generateOperationId } from 'massimo'
 import { writeNamedSchemas } from './named-schemas.js'
-import { getOperationTypeNames, writeOperations } from './openapi-common.js'
+import { getOperationTypeNames, getPathMapTypeNames, writeOperations, writePathMap } from './openapi-common.js'
 import { buildSchemaNames } from './schema-names.js'
 import {
   capitalize,
@@ -451,19 +451,22 @@ function generateTypesFromOpenAPI ({ schema, name, fullRequest, fullResponse, pr
   interfaces.blankLine()
 
   // Operation and client types keep their names; a schema that collides is renamed
+  const operationTypeNames = namedSchemas ? getOperationTypeNames(operations) : []
+  const pathMapNames = getPathMapTypeNames(camelCaseName, operationTypeNames)
   const schemaNames = namedSchemas
-    ? buildSchemaNames(schema, [...getOperationTypeNames(operations), camelCaseName, 'PlatformaticFrontendClient', 'BuildOptions'])
+    ? buildSchemaNames(schema, [...operationTypeNames, camelCaseName, ...Object.values(pathMapNames), 'PlatformaticFrontendClient', 'BuildOptions'])
     : undefined
   if (schemaNames) {
     writeNamedSchemas(interfaces, schema, schemaNames)
   }
 
+  let pathMapEntries
   writer.blankLine()
   writer.write(`export interface ${camelCaseName}`).block(() => {
     writer.writeLine('setBaseUrl(newUrl: string): void;')
     writer.writeLine('setDefaultHeaders(headers: object): void;')
     writer.writeLine('setDefaultFetchParams(fetchParams: RequestInit): void;')
-    writeOperations(interfaces, writer, operations, {
+    pathMapEntries = writeOperations(interfaces, writer, operations, {
       fullRequest,
       fullResponse,
       optionalHeaders: [],
@@ -472,6 +475,10 @@ function generateTypesFromOpenAPI ({ schema, name, fullRequest, fullResponse, pr
       schemaNames
     })
   })
+
+  if (namedSchemas) {
+    writePathMap(interfaces, pathMapNames, pathMapEntries)
+  }
 
   // Declare the module-level named exports emitted by the implementation file,
   // so consumers relying on the .d.ts can `import { setBaseUrl, ... }` without type errors.

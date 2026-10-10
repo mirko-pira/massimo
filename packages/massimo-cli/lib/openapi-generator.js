@@ -1,7 +1,7 @@
 import { generateOperationId } from 'massimo'
 import CodeBlockWriter from 'code-block-writer'
 import { writeNamedSchemas } from './named-schemas.js'
-import { getOperationTypeNames, writeOperations } from './openapi-common.js'
+import { getOperationTypeNames, getPathMapTypeNames, writeOperations, writePathMap } from './openapi-common.js'
 import { buildSchemaNames } from './schema-names.js'
 import { capitalize, toJavaScriptName } from './utils.js'
 
@@ -154,15 +154,18 @@ function generateTypesFromOpenAPI ({
   interfaces.blankLine()
 
   // Operation and client types keep their names; a schema that collides is renamed
+  const operationTypeNames = namedSchemas ? getOperationTypeNames(operations) : []
+  const pathMapNames = getPathMapTypeNames(capitalizedName, operationTypeNames)
   const schemaNames = namedSchemas
-    ? buildSchemaNames(schema, [...getOperationTypeNames(operations), capitalizedName])
+    ? buildSchemaNames(schema, [...operationTypeNames, capitalizedName, ...Object.values(pathMapNames)])
     : undefined
   if (schemaNames) {
     writeNamedSchemas(interfaces, schema, schemaNames)
   }
 
+  let pathMapEntries
   writer.write(`export type ${capitalizedName} =`).block(() => {
-    writeOperations(interfaces, writer, operations, {
+    pathMapEntries = writeOperations(interfaces, writer, operations, {
       fullRequest,
       fullResponse,
       optionalHeaders,
@@ -171,6 +174,10 @@ function generateTypesFromOpenAPI ({
       schemaNames
     })
   })
+
+  if (namedSchemas) {
+    writePathMap(interfaces, pathMapNames, pathMapEntries)
+  }
 
   writer.write(interfaces.toString())
 
